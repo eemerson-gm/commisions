@@ -1,21 +1,61 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import star from "./img/star.svg";
 
+interface SaveData {
+  level: number;
+  experience: number;
+  commissions: string[];
+}
+
+const fibonacci = (n: number): number => {
+  return n < 1 ? 0 : n <= 2 ? 1 : fibonacci(n - 1) + fibonacci(n - 2);
+};
+
 const App = () => {
-  const [commissions, setCommissions] = useState<string[]>([]);
-  const [level, setLevel] = useState<number>(0);
-  const [experience, setExperience] = useState<number>(0);
+  const storageData = localStorage.getItem("saveData");
+  const [saveData, setSaveData] = useState<SaveData>(
+    storageData
+      ? JSON.parse(storageData)
+      : {
+          level: 1,
+          experience: 0,
+          commissions: [],
+        }
+  );
   const [text, setText] = useState<string>("");
+
+  const baseExperience = 100;
+  const nextExperience = baseExperience * fibonacci(saveData.level + 1);
+
+  useEffect(() => {
+    localStorage.setItem("saveData", JSON.stringify(saveData));
+  }, [saveData]);
 
   const handleAddCommission = () => {
     if (text !== "") {
-      setCommissions((prev) => [...prev, text]);
+      setSaveData((prev) => ({
+        commissions: [...prev.commissions, text],
+        level: prev.level,
+        experience: prev.experience,
+      }));
       setText("");
     }
   };
 
   const handleCompleteCommission = () => {
-    setExperience((prev) => prev + 10);
+    setSaveData((prev) => {
+      let newExp = prev.experience + 10;
+      let newLvl = prev.level;
+      if (newExp >= nextExperience) {
+        newExp -= nextExperience;
+        newLvl += 1;
+      }
+      return {
+        commissions: prev.commissions,
+        level: newLvl,
+        experience: newExp,
+      };
+    });
   };
 
   return (
@@ -25,11 +65,12 @@ const App = () => {
       </header>
       <main className="flex flex-col justify-center items-center gap-4 m-4">
         <div className="flex justify-center items-center gap-2">
-          <span>LV. {level}</span>
-          <progress value={experience} max={100} />
+          <span>Rank. {saveData.level}</span>
+          <progress value={saveData.experience} max={nextExperience} />
+          {saveData.experience}/{nextExperience}
         </div>
         <div className="flex flex-col">
-          {commissions.map((title) => (
+          {saveData.commissions.map((title) => (
             <div className="flex text-lg gap-2">
               <input
                 type="checkbox"
