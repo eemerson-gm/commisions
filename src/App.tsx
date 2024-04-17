@@ -1,10 +1,18 @@
 import { useEffect, useState } from "react";
-import star from "./img/star.svg";
+import CloseIcon from "./img/close.svg";
 
 interface SaveData {
   level: number;
+  money: number;
   experience: number;
-  commissions: string[];
+  streak: number;
+  commissions: Commission[];
+  is_completed: boolean;
+}
+
+interface Commission {
+  name: string;
+  complete: boolean;
 }
 
 const fibonacci = (n: number): number => {
@@ -18,11 +26,15 @@ const App = () => {
       ? JSON.parse(storageData)
       : {
           level: 1,
+          money: 0,
           experience: 0,
+          streak: 0,
           commissions: [],
+          is_completed: false,
         }
   );
   const [text, setText] = useState<string>("");
+  const [deleteShowIndex, setDeleteShowIndex] = useState<number | null>(null);
 
   const baseExperience = 100;
   const nextExperience = baseExperience * fibonacci(saveData.level + 1);
@@ -31,18 +43,36 @@ const App = () => {
     localStorage.setItem("saveData", JSON.stringify(saveData));
   }, [saveData]);
 
+  useEffect(() => {
+    if (
+      saveData.commissions.filter((comm) => !comm.complete).length === 0 &&
+      !saveData.is_completed
+    ) {
+      setSaveData((prev) => ({
+        ...prev,
+        streak: prev.streak + 1,
+        is_completed: true,
+      }));
+    }
+  });
+
   const handleAddCommission = () => {
     if (text !== "") {
       setSaveData((prev) => ({
-        commissions: [...prev.commissions, text],
-        level: prev.level,
-        experience: prev.experience,
+        ...prev,
+        commissions: [
+          ...prev.commissions,
+          {
+            name: text,
+            complete: false,
+          },
+        ],
       }));
       setText("");
     }
   };
 
-  const handleCompleteCommission = () => {
+  const completeCommission = (index: number) => {
     setSaveData((prev) => {
       let newExp = prev.experience + 10;
       let newLvl = prev.level;
@@ -50,12 +80,21 @@ const App = () => {
         newExp -= nextExperience;
         newLvl += 1;
       }
+      prev.commissions[index].complete = true;
       return {
-        commissions: prev.commissions,
+        ...prev,
         level: newLvl,
         experience: newExp,
       };
     });
+  };
+
+  const deleteCommission = (index: number) => {
+    setSaveData((prev) => ({
+      ...prev,
+      commissions: prev.commissions.filter((_, i) => i !== index),
+    }));
+    setDeleteShowIndex(null);
   };
 
   return (
@@ -67,20 +106,38 @@ const App = () => {
         <div className="flex justify-center items-center gap-2">
           <span>Rank. {saveData.level}</span>
           <progress value={saveData.experience} max={nextExperience} />
-          {saveData.experience}/{nextExperience}
+          {saveData.experience}/{nextExperience} Streak. {saveData.streak}{" "}
+          Money. {saveData.money}
         </div>
         <div className="flex flex-col">
-          {saveData.commissions.map((title) => (
+          {saveData.commissions.map((comm, index) => (
             <div className="flex text-lg gap-2">
               <input
                 type="checkbox"
+                checked={comm.complete}
                 onChange={(e) => {
                   if (e.target.checked) {
-                    handleCompleteCommission();
+                    completeCommission(index);
                   }
                 }}
               />
-              <span>{title}</span>
+              <div
+                className="flex text-lg gap-1"
+                onMouseOver={() => setDeleteShowIndex(index)}
+                onMouseLeave={() => setDeleteShowIndex(null)}
+              >
+                <span>{comm.name}</span>
+                <button
+                  className="flex items-center"
+                  onClick={() => deleteCommission(index)}
+                >
+                  <img
+                    src={CloseIcon}
+                    width={20}
+                    style={{ opacity: Number(deleteShowIndex === index) }}
+                  />
+                </button>
+              </div>
             </div>
           ))}
         </div>
