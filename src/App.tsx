@@ -45,16 +45,18 @@ const App = () => {
 
   useEffect(() => {
     if (
+      saveData.commissions.length > 0 &&
       saveData.commissions.filter((comm) => !comm.complete).length === 0 &&
       !saveData.is_completed
     ) {
       setSaveData((prev) => ({
         ...prev,
+        money: prev.money + 100,
         streak: prev.streak + 1,
         is_completed: true,
       }));
     }
-  });
+  }, [saveData, setSaveData]);
 
   const handleAddCommission = () => {
     if (text !== "") {
@@ -85,6 +87,7 @@ const App = () => {
         ...prev,
         level: newLvl,
         experience: newExp,
+        money: prev.money + 20,
       };
     });
   };
@@ -103,11 +106,14 @@ const App = () => {
         Commissions
       </header>
       <main className="flex flex-col justify-center items-center gap-4 m-4">
-        <div className="flex justify-center items-center gap-2">
+        <div className="flex flex-col justify-center items-center">
           <span>Rank. {saveData.level}</span>
-          <progress value={saveData.experience} max={nextExperience} />
-          {saveData.experience}/{nextExperience} Streak. {saveData.streak}{" "}
-          Money. {saveData.money}
+          <div className="flex flex-row">
+            <progress value={saveData.experience} max={nextExperience} />
+          </div>
+          <div className="flex flex-row justify-center">
+            <span>${saveData.money}</span>
+          </div>
         </div>
         <div className="flex flex-col">
           {saveData.commissions.map((comm, index) => (
@@ -132,6 +138,7 @@ const App = () => {
                   onClick={() => deleteCommission(index)}
                 >
                   <img
+                    alt="close"
                     src={CloseIcon}
                     width={20}
                     style={{ opacity: Number(deleteShowIndex === index) }}
