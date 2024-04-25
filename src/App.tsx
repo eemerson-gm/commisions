@@ -8,6 +8,7 @@ interface SaveData {
   streak: number;
   commissions: Commission[];
   is_completed: boolean;
+  completion_day: number;
 }
 
 interface Commission {
@@ -20,6 +21,8 @@ const fibonacci = (n: number): number => {
 };
 
 const App = () => {
+  const currentDay = new Date().getDay();
+
   const storageData = localStorage.getItem("saveData");
   const [saveData, setSaveData] = useState<SaveData>(
     storageData
@@ -31,6 +34,7 @@ const App = () => {
           streak: 0,
           commissions: [],
           is_completed: false,
+          completion_day: new Date().getDay(),
         }
   );
   const [text, setText] = useState<string>("");
@@ -40,23 +44,22 @@ const App = () => {
   const nextExperience = baseExperience * fibonacci(saveData.level + 1);
 
   useEffect(() => {
-    localStorage.setItem("saveData", JSON.stringify(saveData));
-  }, [saveData]);
-
-  useEffect(() => {
-    if (
-      saveData.commissions.length > 0 &&
-      saveData.commissions.filter((comm) => !comm.complete).length === 0 &&
-      !saveData.is_completed
-    ) {
+    if (saveData.completion_day !== currentDay) {
       setSaveData((prev) => ({
         ...prev,
-        money: prev.money + 100,
-        streak: prev.streak + 1,
-        is_completed: true,
+        commissions: prev.commissions.map((comm) => ({
+          ...comm,
+          complete: false,
+        })),
+        is_completed: false,
+        completion_day: currentDay,
       }));
     }
-  }, [saveData, setSaveData]);
+  }, [saveData.completion_day, currentDay]);
+
+  useEffect(() => {
+    localStorage.setItem("saveData", JSON.stringify(saveData));
+  }, [saveData]);
 
   const handleAddCommission = () => {
     if (text !== "") {
@@ -78,16 +81,23 @@ const App = () => {
     setSaveData((prev) => {
       let newExp = prev.experience + 10;
       let newLvl = prev.level;
+      let newMoney = prev.money + 20;
       if (newExp >= nextExperience) {
         newExp -= nextExperience;
         newLvl += 1;
+      }
+      if (
+        saveData.commissions.filter((comm) => !comm.complete).length === 0 &&
+        !saveData.is_completed
+      ) {
+        newMoney += 100;
       }
       prev.commissions[index].complete = true;
       return {
         ...prev,
         level: newLvl,
         experience: newExp,
-        money: prev.money + 20,
+        money: newMoney,
       };
     });
   };
@@ -97,22 +107,25 @@ const App = () => {
       ...prev,
       commissions: prev.commissions.filter((_, i) => i !== index),
     }));
-    setDeleteShowIndex(null);
   };
 
   return (
-    <>
-      <header className="flex justify-center items-center text-5xl gap-2">
-        Commissions
-      </header>
+    <div>
       <main className="flex flex-col justify-center items-center gap-4 m-4">
-        <div className="flex flex-col justify-center items-center">
-          <span>Rank. {saveData.level}</span>
-          <div className="flex flex-row">
-            <progress value={saveData.experience} max={nextExperience} />
-          </div>
-          <div className="flex flex-row justify-center">
-            <span>${saveData.money}</span>
+        <div>
+          <header className="flex justify-center items-center text-5xl gap-2">
+            Commissions
+          </header>
+          <div className="flex flex-col justify-center items-center">
+            <span className="text-2xl">Rank. {saveData.level}</span>
+            <progress
+              className="w-full"
+              value={saveData.experience}
+              max={nextExperience}
+            />
+            <div className="flex flex-row justify-center">
+              <span>${saveData.money}</span>
+            </div>
           </div>
         </div>
         <div className="flex flex-col">
@@ -166,7 +179,7 @@ const App = () => {
           </div>
         </div>
       </main>
-    </>
+    </div>
   );
 };
 
